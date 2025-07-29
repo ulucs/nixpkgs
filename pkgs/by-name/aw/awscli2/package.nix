@@ -23,12 +23,11 @@ let
             "test_check_link_response_only" # fails on hydra https://hydra.nixos.org/build/242624087/nixlog/1
           ];
         });
-        python-dateutil = prev.python-dateutil.overridePythonAttrs (prev: rec {
+        python-dateutil = prev.python-dateutil.overridePythonAttrs (prev: {
           version = "2.8.2";
-          format = "setuptools";
           pyproject = null;
           src = prev.src.override {
-            inherit version;
+            version = "2.8.2";
             hash = "sha256-ASPKzBYnrhnd88J6XeW9Z+5FhvvdZEDZdI+Ku0g9PoY=";
           };
           patches = [
@@ -41,16 +40,16 @@ let
           ];
           postPatch = null;
         });
-        ruamel-yaml = prev.ruamel-yaml.overridePythonAttrs (prev: rec {
-          version = "0.17.21";
+        ruamel-yaml = prev.ruamel-yaml.overridePythonAttrs (prev: {
           src = prev.src.override {
-            inherit version;
+            version = "0.17.21";
             hash = "sha256-i3zml6LyEnUqNcGsQURx3BbEJMlXO+SSa1b/P10jt68=";
           };
         });
         urllib3 = prev.urllib3.overridePythonAttrs (prev: rec {
+          pyproject = true;
           version = "1.26.18";
-          build-system = with final; [
+          nativeBuildInputs = with final; [
             setuptools
           ];
           src = prev.src.override {
@@ -65,23 +64,23 @@ let
 in
 py.pkgs.buildPythonApplication rec {
   pname = "awscli2";
-  version = "2.27.50"; # N.B: if you change this, check if overrides are still up-to-date
+  version = "2.27.61"; # N.B: if you change this, check if overrides are still up-to-date
   pyproject = true;
 
   src = fetchFromGitHub {
     owner = "aws";
     repo = "aws-cli";
     tag = version;
-    hash = "sha256-ITiZ144YFhwuRcfhulLF0jxpp1OgznEE8frx4Yn4V+A=";
+    hash = "sha256-2lcPqNrGAHvPPVZIQaDbI54sQQ7OsOiMxUx6qg6WeNU=";
   };
 
   postPatch = ''
     substituteInPlace pyproject.toml \
       --replace-fail 'flit_core>=3.7.1,<3.9.1' 'flit_core>=3.7.1' \
-      --replace-fail 'awscrt==' 'awscrt>=' \
+      --replace-fail 'awscrt==0.26.1' 'awscrt>=0.26.1' \
       --replace-fail 'distro>=1.5.0,<1.9.0' 'distro>=1.5.0' \
       --replace-fail 'docutils>=0.10,<0.20' 'docutils>=0.10' \
-      --replace-fail 'prompt-toolkit>=3.0.24,<3.0.39' 'prompt-toolkit>=3.0.24' \
+      --replace-fail 'prompt-toolkit>=3.0.24,<3.0.52' 'prompt-toolkit>=3.0.24' \
       --replace-fail 'ruamel.yaml.clib>=0.2.0,<=0.2.12' 'ruamel.yaml.clib>=0.2.0' \
 
     substituteInPlace requirements-base.txt \
@@ -103,14 +102,19 @@ py.pkgs.buildPythonApplication rec {
 
   dependencies = with py.pkgs; [
     awscrt
+    bcdoc
+    botocore
     colorama
+    cryptography
     distro
     docutils
     jmespath
     prompt-toolkit
     python-dateutil
+    pyyaml
     ruamel-yaml
     urllib3
+    zipp
   ];
 
   propagatedBuildInputs = [
@@ -144,7 +148,7 @@ py.pkgs.buildPythonApplication rec {
   # tests/unit/customizations/sso/test_utils.py uses sockets
   __darwinAllowLocalNetworking = true;
 
-  pytestFlags = [
+  pytestFlagsArray = [
     "-Wignore::DeprecationWarning"
   ];
 
@@ -180,12 +184,12 @@ py.pkgs.buildPythonApplication rec {
     };
   };
 
-  meta = {
+  meta = with lib; {
     description = "Unified tool to manage your AWS services";
     homepage = "https://aws.amazon.com/cli/";
     changelog = "https://github.com/aws/aws-cli/blob/${version}/CHANGELOG.rst";
-    license = lib.licenses.asl20;
-    maintainers = with lib.maintainers; [
+    license = licenses.asl20;
+    maintainers = with maintainers; [
       bhipple
       davegallant
       bryanasdev000
